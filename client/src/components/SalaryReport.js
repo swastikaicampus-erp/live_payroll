@@ -21,7 +21,7 @@ const SalaryReport = ({ onBack }) => {
 
   const fetchDashboardStats = async () => {
     try {
-        const empRes = await axios.get('http://76.13.192.122/api/payroll/employees');
+        const empRes = await axios.get('http://76.13.192.122:5001/api/payroll/employees');
         setStats({
             totalStaff: empRes.data.length,
             presentToday: Math.floor(empRes.data.length * 0.8) 
@@ -38,7 +38,7 @@ const SalaryReport = ({ onBack }) => {
     const [year, month] = monthYear.split('-');
 
     try {
-      const res = await axios.get(`http://76.13.192.122/api/payroll/salary`, {
+      const res = await axios.get(`http://76.13.192.122:5001/api/payroll/salary`, {
         params: { empId, month, year }
       });
       setReport(res.data);

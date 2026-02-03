@@ -24,7 +24,7 @@ const SettingsPanel = ({ onBack }) => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('http://76.13.192.122/api/payroll/settings');
+            const res = await axios.get('http://76.13.192.122:5001/api/payroll/settings');
             const data = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
             setSettingsList(data);
             if (data.length > 0) {
@@ -50,7 +50,7 @@ const SettingsPanel = ({ onBack }) => {
         
         setLoading(true);
         try {
-            await axios.post('http://76.13.192.122/api/payroll/settings', config);
+            await axios.post('http://76.13.192.122:5001/api/payroll/settings', config);
             alert("✅ Settings Updated Successfully!");
             setEditId(null);
             fetchSettings();
@@ -64,7 +64,7 @@ const SettingsPanel = ({ onBack }) => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure? This will reset payroll rules.")) return;
         try {
-            await axios.delete(`http://76.13.192.122/api/payroll/settings/${id}`);
+            await axios.delete(`http://76.13.192.122:5001/api/payroll/settings/${id}`);
             alert("✅ Deleted!");
             fetchSettings();
             setConfig({ lateFinePerMinute: '', overtimePayPerHour: '', halfDayThresholdHours: '', halfDayPayFactor: '' });

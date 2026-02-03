@@ -18,7 +18,7 @@ const BulkUpload = ({ onBack }) => {
     formData.append('file', file);
 
     try {
-      await axios.post('http://76.13.192.122/api/payroll/api/payroll/bulk-upload', formData);
+      await axios.post('http://76.13.192.122:5001/api/payroll/api/payroll/bulk-upload', formData);
       setStatus({ type: 'success', msg: '✅ USB Data Synced Successfully!' });
       setFile(null);
     } catch (err) {
