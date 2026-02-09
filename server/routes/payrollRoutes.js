@@ -22,8 +22,8 @@ const uploadFields = upload.fields([
 
 router.post('/employee', uploadFields, ctrl.registerEmployee);
 router.put('/employee/:id', uploadFields, ctrl.updateEmployee);
+router.put('/employee/advance/:id', ctrl.updateAdvance);
 
-// Baki routes...
 router.get('/employees', ctrl.getAllEmployees);
 router.delete('/employee/:id', ctrl.deleteEmployee);
 router.get('/salary', ctrl.calculateSalary);

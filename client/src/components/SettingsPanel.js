@@ -6,8 +6,8 @@ const SettingsPanel = ({ onBack }) => {
     const [config, setConfig] = useState({ 
         lateFinePerMinute: '', 
         overtimePayPerHour: '',
-        halfDayThresholdHours: '', // Naya Field
-        halfDayPayFactor: ''       // Naya Field
+        halfDayThresholdHours: '', 
+        halfDayPayFactor: ''       
     });
     const [settingsList, setSettingsList] = useState([]);
     const [loading, setLoading] = useState(false);

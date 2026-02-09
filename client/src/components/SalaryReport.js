@@ -102,7 +102,8 @@ const SalaryReport = ({ onBack }) => {
       </div>
 
       {/* Filter Card */}
-      <div style={styles.filterCard}>
+     <div style={{display:"none"}} >
+       <div style={styles.filterCard}  >
         <div style={{...styles.filterGrid, flexDirection: isMobile ? 'column' : 'row'}}>
           <div style={styles.inputGroup}>
             <label style={styles.label}>MACHINE ID</label>
@@ -117,6 +118,7 @@ const SalaryReport = ({ onBack }) => {
           </button>
         </div>
       </div>
+     </div>
 
       {error && <div style={styles.errorBox}><AlertCircle size={18} /> {error}</div>}
 

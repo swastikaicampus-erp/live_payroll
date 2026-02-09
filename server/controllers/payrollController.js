@@ -2,7 +2,7 @@ const Employee = require('../models/Employee');
 const Settings = require('../models/Settings');
 const axios = require('axios');
 // Zaroori: Multer ko yahan require karna hoga agar niche storage use kar rahe ho
-const multer = require('multer'); 
+const multer = require('multer');
 
 // 1. Register Employee
 exports.registerEmployee = async (req, res) => {
@@ -10,8 +10,11 @@ exports.registerEmployee = async (req, res) => {
         const employeeData = { ...req.body };
 
         // Types fix karein (String to Number)
-        if(employeeData.baseSalary) employeeData.baseSalary = Number(employeeData.baseSalary);
-        if(employeeData.employeeId) employeeData.employeeId = Number(employeeData.employeeId);
+        // Types fix karein
+        if (employeeData.baseSalary) employeeData.baseSalary = Number(employeeData.baseSalary);
+        if (employeeData.employeeId) employeeData.employeeId = Number(employeeData.employeeId);
+        // Add this line
+        if (employeeData.advanceBalance) employeeData.advanceBalance = Number(employeeData.advanceBalance);
 
         // Files paths save karein
         if (req.files) {
@@ -33,8 +36,9 @@ exports.registerEmployee = async (req, res) => {
 exports.updateEmployee = async (req, res) => {
     try {
         const updateData = { ...req.body };
-        if(updateData.baseSalary) updateData.baseSalary = Number(updateData.baseSalary);
-
+        if (updateData.baseSalary) updateData.baseSalary = Number(updateData.baseSalary);
+        // Add this line
+        if (updateData.advanceBalance) updateData.advanceBalance = Number(updateData.advanceBalance);
         if (req.files) {
             if (req.files.profilePhoto) updateData.profilePhoto = req.files.profilePhoto[0].path;
             if (req.files.aadharFront) updateData.aadharFront = req.files.aadharFront[0].path;
@@ -68,11 +72,11 @@ exports.calculateSalary = async (req, res) => {
     try {
         const { empId, month, year } = req.query;
         const employee = await Employee.findOne({ employeeId: empId });
-        
+
         // Settings se values uthayein
-        const config = await Settings.findOne() || { 
-            halfDayThresholdHours: 4, 
-            halfDayPayFactor: 0.5 
+        const config = await Settings.findOne() || {
+            halfDayThresholdHours: 4,
+            halfDayPayFactor: 0.5
         };
 
         if (!employee) return res.status(404).json({ message: "Staff not found" });
@@ -103,7 +107,7 @@ exports.calculateSalary = async (req, res) => {
             const dayLogs = logsByDate[date].sort((a, b) => a - b);
             const checkIn = dayLogs[0];
             const checkOut = dayLogs[dayLogs.length - 1];
-            
+
             const diffInMs = checkOut - checkIn;
             const hoursWorked = diffInMs / (1000 * 60 * 60);
 
@@ -118,19 +122,61 @@ exports.calculateSalary = async (req, res) => {
         });
 
         const perDaySalary = employee.baseSalary / 30;
-        const finalSalary = (perDaySalary * totalAdjustedDays).toFixed(2);
+        let finalSalary = (perDaySalary * totalAdjustedDays);
+
+        // --- Advance Deduction Logic ---
+        const advanceDeducted = employee.advanceBalance || 0;
+        const netPayable = (finalSalary - advanceDeducted).toFixed(2);
 
         res.json({
             name: employee.name,
             baseSalary: employee.baseSalary,
-            calculatedDays: totalAdjustedDays, // Yeh ab 20.5 jaisa dikh sakta hai
-            finalSalary,
+            calculatedDays: totalAdjustedDays,
+            grossSalary: finalSalary.toFixed(2), // Total salary bina deduction ke
+            advanceDeducted: advanceDeducted,    // Kitna advance kata
+            finalSalary: netPayable,             // In-hand salary
             month,
             year
         });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Salary process failed" });
+    }
+};
+
+exports.updateAdvance = async (req, res) => {
+    try {
+        const { amount } = req.body;
+        const { id } = req.params;
+
+        // 1. Pehle employee ko dhoondein
+        const employee = await Employee.findById(id);
+        if (!employee) {
+            return res.status(404).json({ message: "Employee not found" });
+        }
+
+        // 2. Naya balance calculate karein
+        const currentBalance = Number(employee.advanceBalance || 0);
+        const adjustment = Number(amount || 0);
+        const newBalance = currentBalance - adjustment;
+
+        // 3. Validation bypass karne ke liye findByIdAndUpdate use karein
+        // Isse baaki required fields (aadhar, post etc.) ki error nahi aayegi
+        const updatedEmployee = await Employee.findByIdAndUpdate(
+            id,
+            { $set: { advanceBalance: newBalance } },
+            { new: true, runValidators: false } // runValidators: false sabse zaruri hai
+        );
+
+        console.log(`✅ Advance Updated: ₹${newBalance}`);
+        res.json({ 
+            message: "Advance updated successfully", 
+            newBalance: updatedEmployee.advanceBalance 
+        });
+
+    } catch (err) {
+        console.error("❌ Advance Update Error:", err);
+        res.status(500).json({ error: "Server Error: " + err.message });
     }
 };
 

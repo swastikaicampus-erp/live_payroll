@@ -9,7 +9,7 @@ import SalaryReport from './components/SalaryReport';
 import BulkUpload from './components/BulkUpload';
 import StaffList from './components/StaffList';
 import SettingsPanel from './components/SettingsPanel';
-import AttendanceLogs from './components/AttendanceLogs'; // Ye aapka naya component hai
+import AttendanceLogs from './components/AttendanceLogs'; 
 
 // Icons
 import { 
