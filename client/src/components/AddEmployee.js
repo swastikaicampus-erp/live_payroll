@@ -77,8 +77,8 @@ const handleSubmit = async (e) => {
   try {
     const isEdit = !!initialData?._id;
     const url = isEdit 
-      ? `/payroll-api/api/payroll/employee/${initialData._id}`
-      : '/payroll-api/api/payroll/employee';
+      ? `/payroll-api/payroll/employee/${initialData._id}`
+      : '/payroll-api/payroll/employee';
     
     const method = isEdit ? 'put' : 'post';
 

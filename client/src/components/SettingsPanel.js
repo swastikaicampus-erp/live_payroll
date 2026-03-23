@@ -24,7 +24,7 @@ const SettingsPanel = ({ onBack }) => {
 
     const fetchSettings = async () => {
         try {
-            const res = await axios.get('/payroll-api/api/payroll/settings');
+            const res = await axios.get('/payroll-api/payroll/settings');
             const data = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
             setSettingsList(data);
             if (data.length > 0) {
@@ -50,7 +50,7 @@ const SettingsPanel = ({ onBack }) => {
         
         setLoading(true);
         try {
-            await axios.post('/payroll-api/api/payroll/settings', config);
+            await axios.post('/payroll-api/payroll/settings', config);
             alert("✅ Settings Updated Successfully!");
             setEditId(null);
             fetchSettings();
@@ -64,7 +64,7 @@ const SettingsPanel = ({ onBack }) => {
     const handleDelete = async (id) => {
         if (!window.confirm("Are you sure? This will reset payroll rules.")) return;
         try {
-            await axios.delete(`/payroll-api/api/payroll/settings/${id}`);
+            await axios.delete(`/payroll-api/payroll/settings/${id}`);
             alert("✅ Deleted!");
             fetchSettings();
             setConfig({ lateFinePerMinute: '', overtimePayPerHour: '', halfDayThresholdHours: '', halfDayPayFactor: '' });

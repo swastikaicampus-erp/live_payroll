@@ -14,7 +14,7 @@ const EmployeeDashboard = ({ data, onClose }) => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await axios.get('/payroll-api/api/payroll/settings');
+                const res = await axios.get('/payroll-api/payroll/settings');
                 const settings = Array.isArray(res.data) ? res.data[0] : res.data;
                 if (settings) setConfig(settings);
             } catch (err) {
