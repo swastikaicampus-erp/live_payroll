@@ -77,8 +77,8 @@ const handleSubmit = async (e) => {
   try {
     const isEdit = !!initialData?._id;
     const url = isEdit 
-      ? `http://76.13.192.122:5001/api/payroll/employee/${initialData._id}`
-      : 'http://76.13.192.122:5001/api/payroll/employee';
+      ? `/payroll-api/api/employee/${initialData._id}`
+      : '/payroll-api/api/employee';
     
     const method = isEdit ? 'put' : 'post';
 

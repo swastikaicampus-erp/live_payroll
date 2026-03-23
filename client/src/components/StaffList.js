@@ -17,7 +17,7 @@ const StaffList = () => {
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
     const [payrollDetails, setPayrollDetails] = useState(null);
 
-    const API_BASE = 'http://76.13.192.122:5001/api/payroll';
+    const API_BASE = '/payroll-api/api';
     const IMAGE_BASE = 'http://76.13.192.122:5001';
 
     useEffect(() => {
