@@ -21,7 +21,7 @@ const AttendanceLogs = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const empRes = await axios.get('/payroll-api/api/employees').catch(() => ({ data: [] }));
+      const empRes = await axios.get('/payroll-api/api/payroll/employees').catch(() => ({ data: [] }));
       const empMap = {};
       empRes.data.forEach(emp => { 
         empMap[String(emp.employeeId).trim()] = emp.name; 

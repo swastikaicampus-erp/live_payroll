@@ -21,7 +21,7 @@ const SalaryReport = ({ onBack }) => {
 
   const fetchDashboardStats = async () => {
     try {
-        const empRes = await axios.get('/payroll-api/api/employees');
+        const empRes = await axios.get('/payroll-api/api/payroll/employees');
         setStats({
             totalStaff: empRes.data.length,
             presentToday: Math.floor(empRes.data.length * 0.8) 
@@ -38,7 +38,7 @@ const SalaryReport = ({ onBack }) => {
     const [year, month] = monthYear.split('-');
 
     try {
-      const res = await axios.get(`/payroll-api/api/salary`, {
+      const res = await axios.get(`/payroll-api/api/payroll/salary`, {
         params: { empId, month, year }
       });
       setReport(res.data);
