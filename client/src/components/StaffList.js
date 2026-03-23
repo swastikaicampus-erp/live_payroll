@@ -17,8 +17,9 @@ const StaffList = () => {
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
     const [payrollDetails, setPayrollDetails] = useState(null);
 
-    const API_BASE = '/payroll-api/api';
-    const IMAGE_BASE = 'http://76.13.192.122:5001';
+    const API_BASE = '/payroll-api/payroll';
+    // ✅ NEW
+    const IMAGE_BASE = '/uploads';
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth <= 768);
@@ -150,7 +151,7 @@ const StaffList = () => {
                                         <td style={styles.td}>
                                             <div style={styles.nameContainer}>
                                                 <div style={styles.avatar}>
-                                                    {emp.profilePhoto ? <img src={`${IMAGE_BASE}/${emp.profilePhoto}`} style={styles.avatarImg} alt="" /> : emp.name?.charAt(0)}
+                                                    {emp.profilePhoto ? <img src={`/${emp.profilePhoto}`} style={styles.avatarImg} alt="" /> : emp.name?.charAt(0)}
                                                 </div>
                                                 <div>
                                                     <div style={styles.nameText}>{emp.name}</div>
