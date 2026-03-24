@@ -8,36 +8,47 @@ const multer = require('multer');
 
 exports.getDailyAttendance = async (req, res) => {
     try {
-        const { date } = req.query; // e.g., 2026-03-24
+        const { date } = req.query;
         const employees = await Employee.find();
-        
-        // 1. Machine API se data fetch karein
-        const machineUrl = `http://3.111.38.27/bio.php?APIKey=050914052413&FromDate=${date}&ToDate=${date}&SerialNumber=C2636C37D7282535`;
-        const machineRes = await axios.get(machineUrl);
-        const machineLogs = machineRes.data;
 
-        // 2. Database se manual entries fetch karein
+        let machineLogs = [];
+
+        try {
+            const machineUrl = `http://3.111.38.27/bio.php?APIKey=050914052413&FromDate=${date}&ToDate=${date}&SerialNumber=C2636C37D7282535`;
+            const machineRes = await axios.get(machineUrl);
+            machineLogs = Array.isArray(machineRes.data) ? machineRes.data : [];
+        } catch (err) {
+            console.log("⚠️ Machine API failed");
+        }
+
         const manualLogs = await Attendance.find({ date });
 
-        // 3. Sabko merge karein
         const report = employees.map(emp => {
-            // Check if manual entry exists
+
             const manual = manualLogs.find(m => m.employeeId == emp.employeeId);
-            // Check if machine entry exists
-            const machine = machineLogs.find(l => String(l.EmployeeCode).trim() == String(emp.employeeId).trim());
+
+            const logs = machineLogs
+                .filter(l => String(l.EmployeeCode).trim() === String(emp.employeeId).trim())
+                .sort((a, b) => new Date(a.LogDate) - new Date(b.LogDate));
+
+            const checkIn = logs.length ? logs[0].LogDate.split(' ')[1] : "--:--";
+            const checkOut = logs.length > 1 ? logs[logs.length - 1].LogDate.split(' ')[1] : "--:--";
 
             return {
                 employeeId: emp.employeeId,
                 name: emp.name,
-                // Priority: Manual Entry > Machine Entry > Empty
-                checkIn: manual?.checkIn || (machine ? machine.LogDate.split(' ')[1] : "--:--"),
-                checkOut: manual?.checkOut || (machine ? machine.LogDate.split(' ')[1] : "--:--"),
-                status: manual?.status || (machine ? "Present" : "Absent"),
+
+                // Priority: Manual > Machine > Default
+                checkIn: manual?.checkIn || checkIn,
+                checkOut: manual?.checkOut || checkOut,
+                status: manual?.status || (logs.length ? "Present" : "Absent"),
+
                 isManual: !!manual
             };
         });
 
         res.json(report);
+
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -87,7 +87,7 @@ function App() {
     justifyContent: 'center' 
 }}>
     <img 
-        src="/goldberry_tech.png" 
+        src="/payroll/goldberry_tech.png" 
         alt="Goldberry Tech Full Logo" 
         style={{ 
             height: '80px', // Height thodi badha di hai taaki image clear dikhe
