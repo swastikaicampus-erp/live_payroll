@@ -19,6 +19,8 @@ const uploadFields = upload.fields([
     { name: 'aadharFront', maxCount: 1 },
     { name: 'aadharBack', maxCount: 1 }
 ]);
+router.get('/daily-attendance', ctrl.getDailyAttendance);
+router.post('/manual-attendance', ctrl.saveManualAttendance);
 
 router.post('/employee', uploadFields, ctrl.registerEmployee);
 router.put('/employee/:id', uploadFields, ctrl.updateEmployee);

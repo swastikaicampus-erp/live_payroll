@@ -2,23 +2,27 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import {
     Trash2, Edit, Search, RefreshCw, UserPlus,
-    ExternalLink, Wallet
+    ExternalLink, Wallet, CalendarCheck // ✅ CalendarCheck add kiya
 } from 'lucide-react';
 import AddEmployee from './AddEmployee';
 import EmployeeDashboard from './EmployeeDashboard';
+import AttendanceManager from './AttendanceManager';
 
 const StaffList = () => {
     const [staff, setStaff] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+    
+    // ✅ 1. State define ki
+    const [isAttendanceView, setIsAttendanceView] = useState(false); 
+    
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [isSalaryModalOpen, setIsSalaryModalOpen] = useState(false);
     const [payrollDetails, setPayrollDetails] = useState(null);
 
     const API_BASE = '/payroll-api/payroll';
-    // ✅ NEW
     const IMAGE_BASE = '/uploads';
 
     useEffect(() => {
@@ -39,6 +43,37 @@ const StaffList = () => {
             setLoading(false);
         }
     };
+
+    // --- Views Logic ---
+
+    if (isAttendanceView) {
+        return (
+            <div>
+                <button 
+                    onClick={() => setIsAttendanceView(false)} 
+                    style={{...styles.btnSync, margin: '20px', marginBottom: '0'}}
+                >
+                    ← Back to Staff List
+                </button>
+                <AttendanceManager />
+            </div>
+        );
+    }
+
+    if (isEditModalOpen) {
+        return (
+            <AddEmployee
+                initialData={editingEmployee}
+                onBack={() => setIsEditModalOpen(false)}
+                onEmployeeAdded={() => {
+                    setIsEditModalOpen(false);
+                    fetchStaff();
+                }}
+            />
+        );
+    }
+
+    // --- Handlers ---
 
     const handleGiveAdvance = async (empId) => {
         const amount = window.prompt("Enter Advance Amount to Give (₹):");
@@ -76,45 +111,41 @@ const StaffList = () => {
     };
 
     const filteredStaff = staff.filter(s =>
-        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        s.employeeId.toString().includes(searchTerm) ||
+        s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.employeeId?.toString().includes(searchTerm) ||
         (s.post && s.post.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    if (isEditModalOpen) {
-        return (
-            <AddEmployee
-                initialData={editingEmployee}
-                onBack={() => setIsEditModalOpen(false)}
-                onEmployeeAdded={() => {
-                    setIsEditModalOpen(false);
-                    fetchStaff();
-                }}
-            />
-        );
-    }
-
     return (
         <div style={{ ...styles.container, padding: isMobile ? '12px' : '24px' }}>
-            {/* Header */}
+            {/* Header Area */}
             <div style={styles.headerCard}>
                 <div style={{ ...styles.headerFlex, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center' }}>
                     <div style={{ marginBottom: isMobile ? '10px' : '0' }}>
                         <h4 style={styles.title}>Staff Management</h4>
                         <p style={styles.subtitle}>{staff.length} Employees Registered</p>
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', width: isMobile ? '100%' : 'auto' }}>
-                        <button onClick={fetchStaff} style={{ ...styles.btnSync, flex: isMobile ? 1 : 'unset' }}>
-                            <RefreshCw size={16} className={loading ? 'spin' : ''} /> {isMobile ? 'Sync' : ''}
+                    
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={() => setIsAttendanceView(true)} 
+                            style={{ ...styles.btnAdd, backgroundColor: '#10b981' }}
+                        >
+                            <CalendarCheck size={16} /> Attendance
                         </button>
-                        <button onClick={() => setIsEditModalOpen(true)} style={{ ...styles.btnAdd, flex: isMobile ? 2 : 'unset' }}>
+
+                        <button onClick={fetchStaff} style={styles.btnSync}>
+                            <RefreshCw size={16} className={loading ? 'spin' : ''} />
+                        </button>
+                        
+                        <button onClick={() => setIsEditModalOpen(true)} style={styles.btnAdd}>
                             <UserPlus size={16} /> Add Staff
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Search */}
+            {/* Search Bar */}
             <div style={styles.searchBarContainer}>
                 <div style={styles.searchWrapper}>
                     <Search size={18} style={styles.searchIcon} />
@@ -197,12 +228,13 @@ const StaffList = () => {
                 @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
                 .staff-row:hover { background-color: #f8fafc; }
                 ::-webkit-scrollbar { height: 4px; }
-                ::-webkit-scrollbar-thumb { background: #e2e8f0; borderRadius: 10px; }
+                ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
             `}</style>
         </div>
     );
 };
 
+// Styles object remains same...
 const styles = {
     container: { backgroundColor: '#fcfcfd', minHeight: '100vh', boxSizing: 'border-box' },
     headerCard: { backgroundColor: '#fff', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '15px' },

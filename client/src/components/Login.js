@@ -55,7 +55,7 @@ const Auth = () => {
                 <div style={styles.brandSection}>
                     <div style={styles.logoContainer}>
                         <img 
-                            src="/goldberry_tech.png" 
+                            src="/payroll/goldberry_tech.png" 
                             alt="Goldberry Tech Logo" 
                             style={{ 
                                 height: isMobile ? '80px' : '70px',

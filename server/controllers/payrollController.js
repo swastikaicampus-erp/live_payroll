@@ -1,9 +1,64 @@
 const Employee = require('../models/Employee');
 const Settings = require('../models/Settings');
+const Attendance = require('../models/Attendance');
 const axios = require('axios');
 // Zaroori: Multer ko yahan require karna hoga agar niche storage use kar rahe ho
 const multer = require('multer');
 
+
+exports.getDailyAttendance = async (req, res) => {
+    try {
+        const { date } = req.query; // e.g., 2026-03-24
+        const employees = await Employee.find();
+        
+        // 1. Machine API se data fetch karein
+        const machineUrl = `http://3.111.38.27/bio.php?APIKey=050914052413&FromDate=${date}&ToDate=${date}&SerialNumber=C2636C37D7282535`;
+        const machineRes = await axios.get(machineUrl);
+        const machineLogs = machineRes.data;
+
+        // 2. Database se manual entries fetch karein
+        const manualLogs = await Attendance.find({ date });
+
+        // 3. Sabko merge karein
+        const report = employees.map(emp => {
+            // Check if manual entry exists
+            const manual = manualLogs.find(m => m.employeeId == emp.employeeId);
+            // Check if machine entry exists
+            const machine = machineLogs.find(l => String(l.EmployeeCode).trim() == String(emp.employeeId).trim());
+
+            return {
+                employeeId: emp.employeeId,
+                name: emp.name,
+                // Priority: Manual Entry > Machine Entry > Empty
+                checkIn: manual?.checkIn || (machine ? machine.LogDate.split(' ')[1] : "--:--"),
+                checkOut: manual?.checkOut || (machine ? machine.LogDate.split(' ')[1] : "--:--"),
+                status: manual?.status || (machine ? "Present" : "Absent"),
+                isManual: !!manual
+            };
+        });
+
+        res.json(report);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
+
+// Manual Attendance Save karne ke liye
+exports.saveManualAttendance = async (req, res) => {
+    try {
+        const { employeeId, date, checkIn, checkOut, status } = req.body;
+        
+        const attendance = await Attendance.findOneAndUpdate(
+            { employeeId, date },
+            { checkIn, checkOut, status, isManual: true },
+            { upsert: true, new: true }
+        );
+
+        res.json({ message: "Attendance saved manually", attendance });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+};
 // 1. Register Employee
 exports.registerEmployee = async (req, res) => {
     try {
@@ -72,75 +127,72 @@ exports.calculateSalary = async (req, res) => {
     try {
         const { empId, month, year } = req.query;
         const employee = await Employee.findOne({ employeeId: empId });
-
-        // Settings se values uthayein
-        const config = await Settings.findOne() || {
-            halfDayThresholdHours: 4,
-            halfDayPayFactor: 0.5
-        };
-
         if (!employee) return res.status(404).json({ message: "Staff not found" });
 
+        const config = await Settings.findOne() || { halfDayThresholdHours: 4, halfDayPayFactor: 0.5 };
+
+        // 1. Machine API data fetch karein
         const firstDay = `${year}-${month}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const endDate = `${year}-${month}-${lastDay}`;
+        const lastDayCount = new Date(year, month, 0).getDate();
+        const endDate = `${year}-${month}-${lastDayCount}`;
         const machineUrl = `http://3.111.38.27/bio.php?APIKey=050914052413&FromDate=${firstDay}&ToDate=${endDate}&SerialNumber=C2636C37D7282535`;
-
+        
         const machineRes = await axios.get(machineUrl);
-        const empLogs = machineRes.data.filter(l => String(l.EmployeeCode).trim() === String(empId).trim());
+        const machineLogs = machineRes.data.filter(l => String(l.EmployeeCode).trim() === String(empId).trim());
 
-        if (empLogs.length === 0) return res.status(404).json({ message: "No attendance found" });
+        // 2. Database se Manual Attendance fetch karein (Is month ki)
+        const manualAttendance = await Attendance.find({
+            employeeId: empId,
+            date: { $gte: firstDay, $lte: endDate }
+        });
 
-        // --- Naya Calculation Logic ---
         let totalAdjustedDays = 0;
-        const logsByDate = {};
+        let presentDates = [];
 
-        // 1. Logs ko date wise group karein
-        empLogs.forEach(log => {
-            const date = log.LogDate.split(' ')[0];
-            if (!logsByDate[date]) logsByDate[date] = [];
-            logsByDate[date].push(new Date(log.LogDate));
-        });
-
-        // 2. Har din ka working hours nikalein
-        Object.keys(logsByDate).forEach(date => {
-            const dayLogs = logsByDate[date].sort((a, b) => a - b);
-            const checkIn = dayLogs[0];
-            const checkOut = dayLogs[dayLogs.length - 1];
-
-            const diffInMs = checkOut - checkIn;
-            const hoursWorked = diffInMs / (1000 * 60 * 60);
-
-            if (hoursWorked >= 8) {
-                totalAdjustedDays += 1; // Full Day
-            } else if (hoursWorked >= config.halfDayThresholdHours) {
-                totalAdjustedDays += config.halfDayPayFactor; // Half Day (e.g. 0.5)
-            } else {
-                // Agar threshold se bhi kam hai toh ignore (Absent)
-                totalAdjustedDays += 0;
+        // 3. Loop through every day of the month
+        for (let d = 1; d <= lastDayCount; d++) {
+            const currentDate = `${year}-${month}-${String(d).padStart(2, '0')}`;
+            
+            // Check priority 1: Manual Record
+            const manualRecord = manualAttendance.find(m => m.date === currentDate);
+            
+            if (manualRecord) {
+                if (manualRecord.status === 'Present') totalAdjustedDays += 1;
+                else if (manualRecord.status === 'Half-Day') totalAdjustedDays += config.halfDayPayFactor;
+                if (manualRecord.status !== 'Absent') presentDates.push(currentDate);
+            } 
+            else {
+                // Check priority 2: Machine Logs
+                const dayLogs = machineLogs.filter(l => l.LogDate.startsWith(currentDate))
+                                          .sort((a, b) => new Date(a.LogDate) - new Date(b.LogDate));
+                
+                if (dayLogs.length >= 2) {
+                    const hours = (new Date(dayLogs[dayLogs.length-1].LogDate) - new Date(dayLogs[0].LogDate)) / (1000*60*60);
+                    if (hours >= 8) totalAdjustedDays += 1;
+                    else if (hours >= config.halfDayThresholdHours) totalAdjustedDays += config.halfDayPayFactor;
+                    presentDates.push(currentDate);
+                }
             }
-        });
+        }
 
         const perDaySalary = employee.baseSalary / 30;
-        let finalSalary = (perDaySalary * totalAdjustedDays);
-
-        // --- Advance Deduction Logic ---
+        let grossSalary = (perDaySalary * totalAdjustedDays);
         const advanceDeducted = employee.advanceBalance || 0;
-        const netPayable = (finalSalary - advanceDeducted).toFixed(2);
 
         res.json({
             name: employee.name,
+            employeeId: employee.employeeId,
             baseSalary: employee.baseSalary,
             calculatedDays: totalAdjustedDays,
-            grossSalary: finalSalary.toFixed(2), // Total salary bina deduction ke
-            advanceDeducted: advanceDeducted,    // Kitna advance kata
-            finalSalary: netPayable,             // In-hand salary
-            month,
-            year
+            grossSalary: grossSalary.toFixed(2),
+            advanceDeducted: advanceDeducted,
+            finalSalary: (grossSalary - advanceDeducted).toFixed(2),
+            presentDates,
+            daysInMonth: lastDayCount
         });
+
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Salary process failed" });
+        res.status(500).json({ error: "Salary calculation failed" });
     }
 };
 
